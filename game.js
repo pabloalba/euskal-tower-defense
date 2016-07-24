@@ -59,17 +59,27 @@ function Character(imageSrc, x, y, speedX, speedY){
 
 
 var game = {
-  setup: function() {
-    this.score = 0;
-    this.life = 9;
+  setup: function(levelNum) {
+    document.getElementById("audio_sound").load();
+    document.getElementById("audio_sound").pause();
+    document.getElementById("audio_sound").volume = 0.5;
+    if (levelNum == 0){
+      this.score = 0;
+      this.life = 9;
+    }
+
     this.money = 200;
     this.gameOver = false;
     this.enemyCountDown = 0;
-    this.level = level0;
+    this.level = levels[levelNum];
+    this.cleanMap();
     this.currentHorde = 0;
     this.currentHordeEnemies = 0;
     this.currentTowerType = "plain";
     this.paused = false;
+    this.killedEnemies = 0;
+    this.win = false;
+    this.levelNum = levelNum;
 
     //characters
     this.background = [];
@@ -83,6 +93,13 @@ var game = {
     this.selectTowerMark = new Character("images/mark.png", 393, 668, 0, 0);
     this.pauseMenu = new Character("images/paused.png", 120, 100, 0, 0);
     this.pauseButton = new Character("images/help_button.png", 900, 655, 0, 0);
+    this.gameOverLost = new Character("images/gameoverlost.png", 120, 100, 0, 0);
+    this.gameOverLost.visible = false;
+
+    this.gameOverWin = new Character("images/levelwin1.png", 260, 0, 0, 0);
+    this.gameOverWin.visible = false;
+
+    //this.gameOverWin = new Character("images/gameoverwin.png", 900, 655, 0, 0);
 
     for (var y=0; y<game.level.map.length; y++){
       for (var x=0; x<game.level.map[0].length; x++){
@@ -110,9 +127,25 @@ var game = {
     this.pause();
   },
 
+  cleanMap: function(){
+    for (var i=0; i<game.level.map.length;i++){
+      for (var j=0; j<game.level.map[i].length;j++){
+        if (game.level.map[i][j] >= 10) {
+          game.level.map[i][j] = 0;
+        }
+      }
+
+    }
+  },
+
   pause: function(){
     game.paused = ! this.paused;
     game.pauseMenu.visible = game.paused;
+    if (game.paused){
+      document.getElementById("audio_sound").pause();
+    } else {
+      document.getElementById("audio_sound").play();
+    }
   },
 
   selectTowerType: function(x, y){
@@ -168,6 +201,8 @@ var game = {
         game.money -= 100;
         game.level.map[y][x] = 10;
         game.towers[game.towers.length] = tower;
+        document.getElementById("audio_tower").load();
+        document.getElementById("audio_tower").play();
         return tower;
       } else if ((towerType == "snake") && (game.money >= 150)){
         tower.range = 150;
@@ -176,6 +211,8 @@ var game = {
         game.money -= 150;
         game.level.map[y][x] = 20;
         game.towers[game.towers.length] = tower;
+        document.getElementById("audio_tower").load();
+        document.getElementById("audio_tower").play();
         return tower;
       } else if (game.money >= 200){
         tower.range = 100;
@@ -184,7 +221,12 @@ var game = {
         game.money -= 200;
         game.level.map[y][x] = 30;
         game.towers[game.towers.length] = tower;
+        document.getElementById("audio_tower").load();
+        document.getElementById("audio_tower").play();
         return tower;
+      } else {
+        document.getElementById("audio_error").load();
+        document.getElementById("audio_error").play();
       }
   },
 
@@ -204,8 +246,13 @@ var game = {
         tower.strength = 1.5;
         game.level.map[y][x] = 11;
         game.money -= 50;
+        document.getElementById("audio_tower").load();
+        document.getElementById("audio_tower").play();
       }
       return tower;
+    } else {
+      document.getElementById("audio_error").load();
+      document.getElementById("audio_error").play();
     }
   },
 
@@ -240,6 +287,9 @@ var game = {
       tower.countDown = tower.maxFireCountdown;
       tower.laserCountDown = 50;
 
+      document.getElementById("audio_laser").load();
+      document.getElementById("audio_laser").play();
+
       if (tower.towerType == "plain"){
         tower.targetEnemy.life -= tower.strength;
 
@@ -247,6 +297,11 @@ var game = {
           tower.targetEnemy.countDown = 150;
           tower.targetEnemy.image.src = "images/explossion.png";
           tower.targetEnemy = null;
+          game.killedEnemies += 1;
+
+          if (game.killedEnemies >= game.level.totalEnemies){
+            game.endGame(true);
+          }
         }
       } else if (tower.towerType == "snake"){
         tower.targetEnemy.poisoned = true;
@@ -331,8 +386,10 @@ var game = {
             enemy.targetX = -10000;
             enemy.targetY = -1000;
             game.life -= 1;
+            document.getElementById("audio_auch").load();
+            document.getElementById("audio_auch").play();
             if (game.life == 0){
-              game.gameOver = true;
+              game.endGame(false);
             }
           }
 
@@ -387,9 +444,18 @@ var game = {
   },
 
 
-  endGame: function(){
+  endGame: function(gameWin){
     game.gameOver = true;
-    //document.getElementById("audio_sound").pause();
+    game.win = gameWin;
+    document.getElementById("audio_sound").pause();
+
+    if (gameWin) {
+      game.gameOverWin.image.src = "images/levelwin"+game.levelNum+".png";
+      game.gameOverWin.visible = true;
+
+    } else {
+      game.gameOverLost.visible = true;
+    }
   },
 
 
@@ -418,15 +484,24 @@ var game = {
     var time = new Date().getTime();
     if (time - game.lastClick > 0.200){
       game.lastClick  = time;
-      if (game.paused){
-        game.pause();
-      } else {
-        var posX = Math.floor(x / TILE_SIZE);
-        var posY = Math.floor(y / TILE_SIZE);
-        if (posY < TILE_H -2){
-          game.manageTower(posX, posY);
+      if (game.gameOver){
+        if (game.win){
+          game.levelNum = (game.levelNum + 1) % 4;
         } else {
-          game.selectTowerType(x, y);
+          game.levelNum = 0;
+        }
+        game.setup(game.levelNum);
+      } else {
+        if (game.paused){
+          game.pause();
+        } else {
+          var posX = Math.floor(x / TILE_SIZE);
+          var posY = Math.floor(y / TILE_SIZE);
+          if (posY < TILE_H -2){
+            game.manageTower(posX, posY);
+          } else {
+            game.selectTowerType(x, y);
+          }
         }
       }
     }
@@ -447,7 +522,7 @@ var game = {
 
 $(document).ready(function() {
     console.log( "ready!" );
-    game.setup();
+    game.setup(0);
     window.setTimeout(game.mainLoop, 10);
 
     $("#board").click(function(e) {
@@ -459,7 +534,9 @@ $(document).ready(function() {
 });
 
 
-var level0 = {
+
+var levels = [
+{
   map: [
     [3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3],
     [0,0,0,0,0,3,3,3,3,3,0,0,0,0,0,0],
@@ -474,6 +551,232 @@ var level0 = {
     [3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3],
     [3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3]
   ],
+  totalEnemies: 80,
+  startPointX: 0,
+  startPointY: 8,
+  endPointX: 15,
+  endPointY: 2,
+  hordes: [
+    {
+      num: 10,
+      strength: 1,
+      countDown: 500,
+      rest: 5000,
+    },
+    {
+      num: 15,
+      strength: 3,
+      countDown: 500,
+      rest: 5000,
+    },
+    {
+      num: 10,
+      strength: 5,
+      countDown: 500,
+      rest: 5000,
+    },
+    {
+      num: 10,
+      strength: 10,
+      countDown: 500,
+      rest: 5000,
+    },
+    {
+      num: 20,
+      strength: 3,
+      countDown: 200,
+      rest: 5000,
+    },
+    {
+      num: 15,
+      strength: 15,
+      countDown: 300,
+      rest: 4000,
+    },
+  ]
+},
+{
+  map: [
+    [3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3],
+    [1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,3],
+    [0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,3],
+    [0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,3],
+    [0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,3],
+    [0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,3],
+    [0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,3],
+    [0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,0],
+    [0,1,1,1,0,1,1,1,0,1,1,1,0,1,1,1],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3],
+    [3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3]
+  ],
+  startPointX: 0,
+  startPointY: 1,
+  endPointX: 15,
+  endPointY: 8,
+  totalEnemies: 130,
+  hordes: [
+    {
+      num: 10,
+      strength: 1,
+      countDown: 500,
+      rest: 5000,
+    },
+    {
+      num: 10,
+      strength: 2,
+      countDown: 500,
+      rest: 5000,
+    },
+    {
+      num: 10,
+      strength: 3,
+      countDown: 500,
+      rest: 5000,
+    },
+    {
+      num: 10,
+      strength: 5,
+      countDown: 500,
+      rest: 5000,
+    },
+    {
+      num: 10,
+      strength: 10,
+      countDown: 500,
+      rest: 5000,
+    },
+    {
+      num: 10,
+      strength: 11,
+      countDown: 500,
+      rest: 5000,
+    },
+    {
+      num: 20,
+      strength: 2,
+      countDown: 200,
+      rest: 5000,
+    },
+    {
+      num: 20,
+      strength: 3,
+      countDown: 200,
+      rest: 5000,
+    },
+    {
+      num: 15,
+      strength: 12,
+      countDown: 500,
+      rest: 4000,
+    },
+    {
+      num: 15,
+      strength: 15,
+      countDown: 300,
+      rest: 4000,
+    },
+  ]
+},
+{
+  map: [
+    [3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3],
+    [3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3],
+    [3,3,3,3,3,3,0,0,0,0,0,0,0,0,0,3],
+    [3,3,3,3,3,3,0,1,1,1,1,1,1,1,1,1],
+    [3,3,3,3,3,3,0,1,0,0,0,0,0,0,0,3],
+    [3,3,0,0,0,0,0,1,0,3,3,3,3,3,3,3],
+    [1,1,1,1,0,0,0,1,0,3,3,3,3,3,3,3],
+    [3,3,0,1,0,0,0,1,0,3,3,3,3,3,3,3],
+    [3,3,0,1,1,1,1,1,0,3,3,3,3,3,3,3],
+    [3,3,0,0,0,0,0,0,0,3,3,3,3,3,3,3],
+    [3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3],
+    [3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3]
+  ],
+  startPointX: 0,
+  startPointY: 6,
+  endPointX: 15,
+  endPointY: 3,
+  totalEnemies: 130,
+  hordes: [
+    {
+      num: 10,
+      strength: 1,
+      countDown: 500,
+      rest: 5000,
+    },
+    {
+      num: 10,
+      strength: 2,
+      countDown: 500,
+      rest: 5000,
+    },
+    {
+      num: 10,
+      strength: 3,
+      countDown: 500,
+      rest: 5000,
+    },
+    {
+      num: 10,
+      strength: 5,
+      countDown: 500,
+      rest: 5000,
+    },
+    {
+      num: 15,
+      strength: 2,
+      countDown: 200,
+      rest: 5000,
+    },
+    {
+      num: 10,
+      strength: 10,
+      countDown: 500,
+      rest: 5000,
+    },
+    {
+      num: 10,
+      strength: 11,
+      countDown: 500,
+      rest: 5000,
+    },
+    {
+      num: 20,
+      strength: 3,
+      countDown: 200,
+      rest: 5000,
+    },
+    {
+      num: 15,
+      strength: 12,
+      countDown: 500,
+      rest: 4000,
+    },
+    {
+      num: 20,
+      strength: 15,
+      countDown: 300,
+      rest: 4000,
+    },
+  ]
+},
+{
+  map: [
+    [3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3],
+    [3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3],
+    [0,0,0,0,0,0,3,3,3,3,3,3,1,1,1,1],
+    [0,0,1,1,1,3,3,3,3,3,3,0,1,0,0,0],
+    [0,0,1,0,1,0,3,0,3,0,0,3,1,0,0,0],
+    [0,0,1,3,1,1,1,1,1,1,1,0,1,0,0,0],
+    [0,0,1,0,0,3,0,3,0,0,1,3,1,0,0,0],
+    [3,0,1,0,0,3,3,3,3,0,1,0,1,0,0,0],
+    [1,1,1,3,0,3,3,3,3,0,1,1,1,0,0,0],
+    [3,0,0,0,0,3,3,3,3,0,0,0,0,0,0,0],
+    [3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3],
+    [3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3]
+  ],
+  totalEnemies: 130,
   startPointX: 0,
   startPointY: 8,
   endPointX: 15,
@@ -540,88 +843,5 @@ var level0 = {
       rest: 4000,
     },
   ]
-}
-
-
-var level1 = {
-  map: [
-    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-    [1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,0],
-    [0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,0],
-    [0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,0],
-    [0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,0],
-    [0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,0],
-    [0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,0],
-    [0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,0],
-    [0,1,1,1,0,1,1,1,0,1,1,1,0,1,1,1],
-    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
-  ],
-  startPointX: 0,
-  startPointY: 1,
-  endPointX: 15,
-  endPointY: 8,
-  hordes: [
-    {
-      num: 10,
-      strength: 1,
-      countDown: 500,
-      rest: 5000,
-    },
-    {
-      num: 10,
-      strength: 2,
-      countDown: 500,
-      rest: 5000,
-    },
-    {
-      num: 10,
-      strength: 3,
-      countDown: 500,
-      rest: 5000,
-    },
-    {
-      num: 10,
-      strength: 5,
-      countDown: 500,
-      rest: 5000,
-    },
-    {
-      num: 10,
-      strength: 10,
-      countDown: 500,
-      rest: 5000,
-    },
-    {
-      num: 10,
-      strength: 11,
-      countDown: 500,
-      rest: 5000,
-    },
-    {
-      num: 20,
-      strength: 2,
-      countDown: 200,
-      rest: 5000,
-    },
-    {
-      num: 20,
-      strength: 3,
-      countDown: 200,
-      rest: 5000,
-    },
-    {
-      num: 15,
-      strength: 12,
-      countDown: 500,
-      rest: 4000,
-    },
-    {
-      num: 15,
-      strength: 15,
-      countDown: 300,
-      rest: 4000,
-    },
-  ]
-}
+},
+];

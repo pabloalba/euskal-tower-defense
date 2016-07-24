@@ -101,6 +101,8 @@ var gui = {
       this.drawCharacter(game.selectTowerMark);
       this.drawCharacter(game.pauseButton);
       this.drawCharacter(game.pauseMenu);
+      this.drawCharacter(game.gameOverLost);
+      this.drawCharacter(game.gameOverWin);
     },
 
 
