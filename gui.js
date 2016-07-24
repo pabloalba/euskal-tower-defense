@@ -11,6 +11,12 @@ var gui = {
 
     drawCharacter: function(character) {
       if (character.visible){
+        gui.ctx.drawImage(character.image, character.x, character.y);
+      }
+    },
+
+    drawEnemy: function(character) {
+      if (character.visible){
 
         var fillStyle = gui.ctx.fillStyle;
 
@@ -62,6 +68,12 @@ var gui = {
       }
     },
 
+    drawEnemiesList: function(characters) {
+      for (i=0; i < characters.length;i++){
+        gui.drawEnemy(characters[i]);
+      }
+    },
+
     drawTowersList: function(characters) {
       for (i=0; i < characters.length;i++){
         gui.drawCharacter(characters[i]);
@@ -85,7 +97,7 @@ var gui = {
 
     drawCharacters: function() {
       this.drawCharacterList(game.background);
-      this.drawCharacterList(game.enemies);
+      this.drawEnemiesList(game.enemies);
       this.drawTowersList(game.towers);
       this.drawCharacterList(game.arrows);
       this.drawCharacter(game.scoreBg);

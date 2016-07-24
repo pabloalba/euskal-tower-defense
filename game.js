@@ -12,11 +12,15 @@ function Character(imageSrc, x, y, speedX, speedY){
 
             this.targetX = x;
             this.targetY = y;
+            this.direction = "right";
 
             this.speedX = speedX;
             this.speedY = speedY;
-            this.image = new Image();
-            this.image.src = imageSrc;
+            if (imageSrc != ""){
+              this.image = new Image();
+              this.image.src = imageSrc;
+            }
+
             this.visible = true;
             this.countDown = 0;
             this.laserCountDown = 0;
@@ -29,6 +33,8 @@ function Character(imageSrc, x, y, speedX, speedY){
             this.slowed = false;
             this.poisoned = false;
             this.maxFireCountdown = 0;
+            this.direction;
+
 
             this.touchPoint = function(x, y) {
                 return (
@@ -56,6 +62,38 @@ function Character(imageSrc, x, y, speedX, speedY){
 
 }
 
+function createImage(imgSrc){
+  var img = new Image();
+  img.src = imgSrc;
+  return img;
+}
+
+
+// Preload images
+var images_enemies = {
+  "enemy1":[
+    [createImage("images/enemy1_u_0.png"), createImage("images/enemy1_u_1.png"), createImage("images/enemy1_u_2.png"), createImage("images/enemy1_u_3.png")],
+    [createImage("images/enemy1_r_0.png"), createImage("images/enemy1_r_1.png"), createImage("images/enemy1_r_2.png"), createImage("images/enemy1_r_3.png")],
+    [createImage("images/enemy1_d_0.png"), createImage("images/enemy1_d_1.png"), createImage("images/enemy1_d_2.png"), createImage("images/enemy1_d_3.png")],
+  ],
+  "enemy2":[
+    [createImage("images/enemy2_u_0.png"), createImage("images/enemy2_u_1.png"), createImage("images/enemy2_u_2.png"), createImage("images/enemy2_u_3.png")],
+    [createImage("images/enemy2_r_0.png"), createImage("images/enemy2_r_1.png"), createImage("images/enemy2_r_2.png"), createImage("images/enemy2_r_3.png")],
+    [createImage("images/enemy2_d_0.png"), createImage("images/enemy2_d_1.png"), createImage("images/enemy2_d_2.png"), createImage("images/enemy2_d_3.png")],
+  ],
+  "enemy3":[
+    [createImage("images/enemy3_u_0.png"), createImage("images/enemy3_u_1.png"), createImage("images/enemy3_u_2.png"), createImage("images/enemy3_u_3.png")],
+    [createImage("images/enemy3_r_0.png"), createImage("images/enemy3_r_1.png"), createImage("images/enemy3_r_2.png"), createImage("images/enemy3_r_3.png")],
+    [createImage("images/enemy3_d_0.png"), createImage("images/enemy3_d_1.png"), createImage("images/enemy3_d_2.png"), createImage("images/enemy3_d_3.png")],
+  ]
+};
+
+var image_explossion = new Image();
+image_explossion.src = "images/explossion.png";
+
+
+
+
 
 
 var game = {
@@ -66,11 +104,13 @@ var game = {
     if (levelNum == 0){
       this.score = 0;
       this.life = 9;
+    } else {
+      this.score += this.money;
     }
 
     this.money = 200;
     this.gameOver = false;
-    this.enemyCountDown = 0;
+    this.enemyCountDown = 2000;
     this.level = levels[levelNum];
     this.cleanMap();
     this.currentHorde = 0;
@@ -80,6 +120,7 @@ var game = {
     this.killedEnemies = 0;
     this.win = false;
     this.levelNum = levelNum;
+    this.createdEnemies = 0;
 
     //characters
     this.background = [];
@@ -90,7 +131,7 @@ var game = {
     this.selectTower1 = new Character("images/tower.png", 395, 670, 0, 0);
     this.selectTower2 = new Character("images/snake.png", 490, 670, 0, 0);
     this.selectTower3 = new Character("images/snow.png", 585, 670, 0, 0);
-    this.selectTowerMark = new Character("images/mark.png", 393, 668, 0, 0);
+    this.selectTowerMark = new Character("images/mark.png", 393, 665, 0, 0);
     this.pauseMenu = new Character("images/paused.png", 120, 100, 0, 0);
     this.pauseButton = new Character("images/help_button.png", 900, 655, 0, 0);
     this.gameOverLost = new Character("images/gameoverlost.png", 120, 100, 0, 0);
@@ -164,8 +205,9 @@ var game = {
 
   },
 
-  createEnemy: function(strength){
+  createEnemy: function(strength, baseImage){
     var enemy;
+
 
     for (var i=0; i<game.enemies.length;i++){
       if (!game.enemies[i].visible){
@@ -173,16 +215,30 @@ var game = {
       }
     }
     if (!enemy){
-      enemy = new Character("images/enemy_test.png", TILE_SIZE * (game.level.startPointX -1), TILE_SIZE * game.level.startPointY, 0.15, 0.15);
+      enemy = new Character("", TILE_SIZE * (game.level.startPointX -1), TILE_SIZE * game.level.startPointY, 0.20, 0.20);
       game.enemies[game.enemies.length] = enemy;
     }
-
-    enemy.image.src = "images/enemy_test.png";
+    enemy.baseImage = baseImage;
+    enemy.image = images_enemies[baseImage][1][0];
     enemy.x = TILE_SIZE * (game.level.startPointX -1);
     enemy.y = TILE_SIZE * game.level.startPointY;
     enemy.targetX = TILE_SIZE * game.level.startPointX;
     enemy.targetY = TILE_SIZE * game.level.startPointY;
     enemy.life = strength;
+    if (strength == 1){
+      enemy.speedX = 0.20;
+      enemy.speedY = 0.20;
+    } else if (strength < 3){
+      enemy.speedX = 0.15;
+      enemy.speedY = 0.15;
+    } else if (strength < 10){
+      enemy.speedX = 0.10;
+      enemy.speedY = 0.10;
+    } else {
+      enemy.speedX = 0.05;
+      enemy.speedY = 0.05;
+    }
+
     enemy.strength = strength;
     enemy.poisoned = false;
     enemy.slowed = false;
@@ -207,7 +263,7 @@ var game = {
       } else if ((towerType == "snake") && (game.money >= 150)){
         tower.range = 150;
         tower.strength = 1;
-        tower.maxFireCountdown = 400;
+        tower.maxFireCountdown = 700;
         game.money -= 150;
         game.level.map[y][x] = 20;
         game.towers[game.towers.length] = tower;
@@ -216,7 +272,7 @@ var game = {
         return tower;
       } else if (game.money >= 200){
         tower.range = 100;
-        tower.maxFireCountdown = 700;
+        tower.maxFireCountdown = 1200;
         tower.strength = 1;
         game.money -= 200;
         game.level.map[y][x] = 30;
@@ -295,13 +351,8 @@ var game = {
 
         if ((tower.targetEnemy.life <= 0) && (tower.targetEnemy.image.src != "images/explossion.png")){
           tower.targetEnemy.countDown = 150;
-          tower.targetEnemy.image.src = "images/explossion.png";
+          tower.targetEnemy.image = image_explossion;
           tower.targetEnemy = null;
-          game.killedEnemies += 1;
-
-          if (game.killedEnemies >= game.level.totalEnemies){
-            game.endGame(true);
-          }
         }
       } else if (tower.towerType == "snake"){
         tower.targetEnemy.poisoned = true;
@@ -317,6 +368,7 @@ var game = {
   },
 
   moveEnemy: function(enemy, delta){
+    var spriteNum = Math.round((new Date().getTime() / 100)) % 4;
     enemy.countDown -= delta;
     if (enemy.visible){
       if (enemy.poisoned){
@@ -331,6 +383,9 @@ var game = {
             vel *= 0.5;
           }
           enemy.x += vel * delta;
+
+          // Change image
+          enemy.image = images_enemies[enemy.baseImage][1][spriteNum];
         }
         if (enemy.targetY > enemy.y){
           var vel = enemy.speedY;
@@ -339,6 +394,8 @@ var game = {
           }
           enemy.y += vel * delta;
           moveUp = true;
+          // Change image
+          enemy.image = images_enemies[enemy.baseImage][2][spriteNum];
         } else if (enemy.targetY < enemy.y){
           var vel = enemy.speedY;
           if (enemy.slowed){
@@ -346,9 +403,15 @@ var game = {
           }
           moveUp = false;
           enemy.y -= vel * delta;
+          // Change image
+          enemy.image = images_enemies[enemy.baseImage][0][spriteNum];
         }
 
-        if ((Math.abs(enemy.x - enemy.targetX) < 5) && (Math.abs(enemy.y - enemy.targetY) < 5)){
+        if (
+          ((enemy.direction == "up") && (enemy.y <= enemy.targetY)) ||
+          ((enemy.direction == "down") && (enemy.y >= enemy.targetY)) ||
+          ((enemy.direction == "right") && (enemy.x >= enemy.targetX))
+        ){
           enemy.x = enemy.targetX;
           enemy.y = enemy.targetY;
 
@@ -358,24 +421,30 @@ var game = {
 
           if (game.level.map[posY][posX+1] == 1){
             enemy.targetX = (posX+1) * TILE_SIZE;
+            enemy.direction = "right";
           } else {
             if (moveUp){
               if (game.level.map[posY+1][posX] == 1){
                 enemy.targetY = (posY+1) * TILE_SIZE;
+                enemy.direction = "down";
               } else if (game.level.map[posY-1][posX] == 1){
                 enemy.targetY = (posY-1) * TILE_SIZE;
+                enemy.direction = "up";
               }
             } else {
               if (game.level.map[posY-1][posX] == 1){
                 enemy.targetY = (posY-1) * TILE_SIZE;
+                enemy.direction = "up";
               } else if (game.level.map[posY+1][posX] == 1){
                 enemy.targetY = (posY+1) * TILE_SIZE;
+                enemy.direction = "down";
               }
             }
           }
 
           if ((posX == game.level.endPointX) && (posY == game.level.endPointY)){
             enemy.targetX = (game.level.endPointX+1) * TILE_SIZE;
+            enemy.direction = "right";
           }
 
           if ((enemy.visible) && (posX == game.level.endPointX+1) && (posY == game.level.endPointY)){
@@ -404,6 +473,10 @@ var game = {
         game.money += 3 + enemy.strength * 3;
       }
 
+
+
+
+
     }
   },
 
@@ -426,11 +499,13 @@ var game = {
     if (game.currentHorde < game.level.hordes.length) {
       game.enemyCountDown -= delta;
       if (game.enemyCountDown <=0){
-        game.createEnemy(game.level.hordes[game.currentHorde].strength);
+        game.createdEnemies += 1;
+        game.createEnemy(game.level.hordes[game.currentHorde].strength, game.level.hordes[game.currentHorde].baseImage);
         game.currentHordeEnemies += 1;
         if (game.currentHordeEnemies < game.level.hordes[game.currentHorde].num){
           game.enemyCountDown = game.level.hordes[game.currentHorde].countDown;
         } else {
+
           game.currentHordeEnemies = 0;
           game.currentHorde += 1;
 
@@ -470,6 +545,18 @@ var game = {
       var delta = game.lastLoop - last;
 
       if ((!game.paused) && (!game.gameOver)){
+        if (game.currentHorde == game.level.hordes.length){
+          var end = true;
+          for (var i=0; i<game.enemies.length;i++){
+            if (game.enemies[i].visible){
+              end = false;
+              break;
+            }
+          }
+          if (end){
+            game.endGame(true);
+          }
+        }
         game.moveCharacters(delta);
         game.createEnemies(delta);
       }
@@ -560,38 +647,44 @@ var levels = [
     {
       num: 10,
       strength: 1,
-      countDown: 500,
+      countDown: 700,
       rest: 5000,
+      baseImage: "enemy1"
     },
     {
-      num: 15,
+      num: 10,
       strength: 3,
-      countDown: 500,
+      countDown: 700,
       rest: 5000,
+      baseImage: "enemy2"
     },
     {
       num: 10,
       strength: 5,
-      countDown: 500,
+      countDown: 600,
       rest: 5000,
+      baseImage: "enemy2"
     },
     {
-      num: 10,
+      num: 6,
       strength: 10,
-      countDown: 500,
-      rest: 5000,
-    },
-    {
-      num: 20,
-      strength: 3,
-      countDown: 200,
-      rest: 5000,
+      countDown: 600,
+      rest: 7000,
+      baseImage: "enemy3"
     },
     {
       num: 15,
+      strength: 2,
+      countDown: 200,
+      rest: 5000,
+      baseImage: "enemy1"
+    },
+    {
+      num: 10,
       strength: 15,
-      countDown: 300,
+      countDown: 500,
       rest: 4000,
+      baseImage: "enemy3"
     },
   ]
 },
@@ -621,60 +714,70 @@ var levels = [
       strength: 1,
       countDown: 500,
       rest: 5000,
+      baseImage: "enemy1"
     },
     {
       num: 10,
       strength: 2,
       countDown: 500,
       rest: 5000,
+      baseImage: "enemy1"
     },
     {
       num: 10,
-      strength: 3,
+      strength: 4,
       countDown: 500,
       rest: 5000,
+      baseImage: "enemy2"
     },
     {
       num: 10,
-      strength: 5,
+      strength: 6,
       countDown: 500,
       rest: 5000,
+      baseImage: "enemy2"
     },
     {
       num: 10,
       strength: 10,
       countDown: 500,
       rest: 5000,
+      baseImage: "enemy3"
     },
     {
       num: 10,
-      strength: 11,
+      strength: 14,
       countDown: 500,
       rest: 5000,
+      baseImage: "enemy3"
     },
     {
       num: 20,
       strength: 2,
       countDown: 200,
       rest: 5000,
+      baseImage: "enemy1"
     },
     {
       num: 20,
       strength: 3,
       countDown: 200,
       rest: 5000,
+      baseImage: "enemy2"
     },
     {
       num: 15,
       strength: 12,
       countDown: 500,
       rest: 4000,
+      baseImage: "enemy3"
     },
     {
       num: 15,
       strength: 15,
       countDown: 300,
       rest: 4000,
+      baseImage: "enemy3"
     },
   ]
 },
@@ -704,60 +807,70 @@ var levels = [
       strength: 1,
       countDown: 500,
       rest: 5000,
+      baseImage: "enemy1"
     },
     {
       num: 10,
       strength: 2,
       countDown: 500,
       rest: 5000,
+      baseImage: "enemy1"
     },
     {
       num: 10,
       strength: 3,
       countDown: 500,
       rest: 5000,
+      baseImage: "enemy2"
     },
     {
       num: 10,
       strength: 5,
       countDown: 500,
       rest: 5000,
+      baseImage: "enemy2"
     },
     {
       num: 15,
       strength: 2,
       countDown: 200,
       rest: 5000,
+      baseImage: "enemy1"
     },
     {
       num: 10,
       strength: 10,
       countDown: 500,
       rest: 5000,
+      baseImage: "enemy3"
     },
     {
       num: 10,
       strength: 11,
       countDown: 500,
       rest: 5000,
+      baseImage: "enemy3"
     },
     {
       num: 20,
       strength: 3,
       countDown: 200,
       rest: 5000,
+      baseImage: "enemy2"
     },
     {
       num: 15,
       strength: 12,
       countDown: 500,
       rest: 4000,
+      baseImage: "enemy3"
     },
     {
       num: 20,
       strength: 15,
       countDown: 300,
       rest: 4000,
+      baseImage: "enemy3"
     },
   ]
 },
@@ -787,60 +900,70 @@ var levels = [
       strength: 1,
       countDown: 500,
       rest: 5000,
+      baseImage: "enemy1"
     },
     {
       num: 10,
       strength: 2,
       countDown: 500,
       rest: 5000,
+      baseImage: "enemy1"
     },
     {
       num: 10,
       strength: 3,
       countDown: 500,
       rest: 5000,
+      baseImage: "enemy2"
     },
     {
       num: 10,
       strength: 5,
       countDown: 500,
       rest: 5000,
+      baseImage: "enemy2"
     },
     {
       num: 10,
       strength: 10,
       countDown: 500,
       rest: 5000,
+      baseImage: "enemy3"
     },
     {
       num: 10,
       strength: 11,
       countDown: 500,
       rest: 5000,
+      baseImage: "enemy3"
     },
     {
       num: 20,
       strength: 2,
       countDown: 200,
       rest: 5000,
+      baseImage: "enemy1"
     },
     {
       num: 20,
       strength: 3,
       countDown: 200,
       rest: 5000,
+      baseImage: "enemy2"
     },
     {
       num: 15,
       strength: 12,
       countDown: 500,
       rest: 4000,
+      baseImage: "enemy3"
     },
     {
       num: 15,
       strength: 15,
       countDown: 300,
       rest: 4000,
+      baseImage: "enemy3"
     },
   ]
 },
