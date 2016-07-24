@@ -26,6 +26,9 @@ function Character(imageSrc, x, y, speedX, speedY){
             this.life = 0;
             this.strength = 0;
             this.towerType = "";
+            this.slowed = false;
+            this.poisoned = false;
+            this.maxFireCountdown = 0;
 
             this.touchPoint = function(x, y) {
                 return (
@@ -148,21 +151,41 @@ var game = {
     enemy.targetY = TILE_SIZE * game.level.startPointY;
     enemy.life = strength;
     enemy.strength = strength;
+    enemy.poisoned = false;
+    enemy.slowed = false;
     enemy.visible = true;
     return enemy;
   },
 
   createTower: function(x, y, towerType){
-    if (game.money >= 100){
       var tower = new Character("images/tower_"+towerType+".png", TILE_SIZE * x, TILE_SIZE * y, 0, 0);
       tower.towerType=towerType;
-      tower.range = 100;
-      tower.strength = 1;
-      game.towers[game.towers.length] = tower;
-      game.level.map[y][x] = 10;
-      game.money -= 100;
-      return tower;
-    }
+
+      if ((towerType == "plain") && (game.money >= 100)){
+        tower.range = 100;
+        tower.strength = 1;
+        tower.maxFireCountdown = 500;
+        game.money -= 100;
+        game.level.map[y][x] = 10;
+        game.towers[game.towers.length] = tower;
+        return tower;
+      } else if ((towerType == "snake") && (game.money >= 150)){
+        tower.range = 150;
+        tower.strength = 1;
+        tower.maxFireCountdown = 400;
+        game.money -= 150;
+        game.level.map[y][x] = 20;
+        game.towers[game.towers.length] = tower;
+        return tower;
+      } else if (game.money >= 200){
+        tower.range = 100;
+        tower.maxFireCountdown = 700;
+        tower.strength = 1;
+        game.money -= 200;
+        game.level.map[y][x] = 30;
+        game.towers[game.towers.length] = tower;
+        return tower;
+      }
   },
 
   updateTower: function(x, y){
@@ -214,16 +237,26 @@ var game = {
 
     if ((tower.targetEnemy) && (tower.countDown <=0)) {
       // Fire!
-      tower.countDown = 600 - 100 * tower.strength;
+      tower.countDown = tower.maxFireCountdown;
       tower.laserCountDown = 50;
 
-      tower.targetEnemy.life -= tower.strength;
+      if (tower.towerType == "plain"){
+        tower.targetEnemy.life -= tower.strength;
 
-      if ((tower.targetEnemy.life <= 0) && (tower.targetEnemy.image.src != "images/explossion.png")){
-        tower.targetEnemy.countDown = 150;
-        tower.targetEnemy.image.src = "images/explossion.png";
+        if ((tower.targetEnemy.life <= 0) && (tower.targetEnemy.image.src != "images/explossion.png")){
+          tower.targetEnemy.countDown = 150;
+          tower.targetEnemy.image.src = "images/explossion.png";
+          tower.targetEnemy = null;
+        }
+      } else if (tower.towerType == "snake"){
+        tower.targetEnemy.poisoned = true;
+        tower.targetEnemy = null;
+      } else if (tower.towerType == "snow"){
+        tower.targetEnemy.slowed = true;
         tower.targetEnemy = null;
       }
+
+
     }
 
   },
@@ -231,18 +264,33 @@ var game = {
   moveEnemy: function(enemy, delta){
     enemy.countDown -= delta;
     if (enemy.visible){
+      if (enemy.poisoned){
+        enemy.life -= 0.00025 * delta;
+      }
       if (enemy.life > 0){
         var moveUp = false;
         // Only moves right
         if (enemy.targetX > enemy.x){
-          enemy.x += enemy.speedX * delta;
+          var vel = enemy.speedX;
+          if (enemy.slowed){
+            vel *= 0.5;
+          }
+          enemy.x += vel * delta;
         }
         if (enemy.targetY > enemy.y){
-          enemy.y += enemy.speedY * delta;
+          var vel = enemy.speedY;
+          if (enemy.slowed){
+            vel *= 0.5;
+          }
+          enemy.y += vel * delta;
           moveUp = true;
         } else if (enemy.targetY < enemy.y){
+          var vel = enemy.speedY;
+          if (enemy.slowed){
+            vel *= 0.5;
+          }
           moveUp = false;
-          enemy.y -= enemy.speedY * delta;
+          enemy.y -= vel * delta;
         }
 
         if ((Math.abs(enemy.x - enemy.targetX) < 5) && (Math.abs(enemy.y - enemy.targetY) < 5)){
@@ -300,8 +348,6 @@ var game = {
       }
 
     }
-
-
   },
 
   moveCharacters: function(delta){
@@ -516,4 +562,66 @@ var level1 = {
   startPointY: 1,
   endPointX: 15,
   endPointY: 8,
+  hordes: [
+    {
+      num: 10,
+      strength: 1,
+      countDown: 500,
+      rest: 5000,
+    },
+    {
+      num: 10,
+      strength: 2,
+      countDown: 500,
+      rest: 5000,
+    },
+    {
+      num: 10,
+      strength: 3,
+      countDown: 500,
+      rest: 5000,
+    },
+    {
+      num: 10,
+      strength: 5,
+      countDown: 500,
+      rest: 5000,
+    },
+    {
+      num: 10,
+      strength: 10,
+      countDown: 500,
+      rest: 5000,
+    },
+    {
+      num: 10,
+      strength: 11,
+      countDown: 500,
+      rest: 5000,
+    },
+    {
+      num: 20,
+      strength: 2,
+      countDown: 200,
+      rest: 5000,
+    },
+    {
+      num: 20,
+      strength: 3,
+      countDown: 200,
+      rest: 5000,
+    },
+    {
+      num: 15,
+      strength: 12,
+      countDown: 500,
+      rest: 4000,
+    },
+    {
+      num: 15,
+      strength: 15,
+      countDown: 300,
+      rest: 4000,
+    },
+  ]
 }

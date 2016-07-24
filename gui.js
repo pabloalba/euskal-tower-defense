@@ -11,7 +11,25 @@ var gui = {
 
     drawCharacter: function(character) {
       if (character.visible){
+
+        var fillStyle = gui.ctx.fillStyle;
+
+        if (character.poisoned) {
+          gui.ctx.fillStyle = "rgba(0, 255, 0, 0.08)";
+          gui.ctx.fillRect(character.x + 10, character.y + 5, 45, 54);
+        }
+
+        if (character.slowed) {
+          gui.ctx.fillStyle = "rgba(255, 255, 255, 0.08)";
+          gui.ctx.fillRect(character.x + 10, character.y + 5, 45, 54);
+        }
+
         gui.ctx.drawImage(character.image, character.x, character.y);
+
+        gui.ctx.fillStyle = fillStyle;
+
+
+
       }
     },
 
