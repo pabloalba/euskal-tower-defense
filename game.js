@@ -66,6 +66,7 @@ var game = {
     this.currentHorde = 0;
     this.currentHordeEnemies = 0;
     this.currentTowerType = "plain";
+    this.paused = false;
 
     //characters
     this.background = [];
@@ -77,7 +78,8 @@ var game = {
     this.selectTower2 = new Character("images/snake.png", 490, 670, 0, 0);
     this.selectTower3 = new Character("images/snow.png", 585, 670, 0, 0);
     this.selectTowerMark = new Character("images/mark.png", 393, 668, 0, 0);
-
+    this.pauseMenu = new Character("images/paused.png", 120, 100, 0, 0);
+    this.pauseButton = new Character("images/help_button.png", 900, 655, 0, 0);
 
     for (var y=0; y<game.level.map.length; y++){
       for (var x=0; x<game.level.map[0].length; x++){
@@ -102,6 +104,12 @@ var game = {
     gui.setup();
 
     this.lastLoop = new Date().getTime();
+    this.pause();
+  },
+
+  pause: function(){
+    game.paused = ! this.paused;
+    game.pauseMenu.visible = game.paused;
   },
 
   selectTowerType: function(x, y){
@@ -114,7 +122,10 @@ var game = {
     } else if ((x > 585) && (x < 585 + 64) && (y > 670) && (y<670+64)){
       game.currentTowerType = "snow";
       this.selectTowerMark.x = 583;
+    } else if ((x > 900) && (x < 900 + 100) && (y > 655) && (y<655+100)){
+      game.pause();
     }
+
   },
 
   createEnemy: function(strength){
@@ -166,8 +177,8 @@ var game = {
 
       if (tower.towerType == "plain") {
         tower.image.src = "images/tower_"+tower.towerType+"2.png";
-        tower.range = 125;
-        tower.strength = 1.25;
+        tower.range = 150;
+        tower.strength = 1.5;
         game.level.map[y][x] = 11;
         game.money -= 50;
       }
@@ -346,7 +357,7 @@ var game = {
       game.lastClick  = new Date().getTime();
       var delta = game.lastLoop - last;
 
-      if (!game.gameOver){
+      if ((!game.paused) && (!game.gameOver)){
         game.moveCharacters(delta);
         game.createEnemies(delta);
       }
@@ -361,12 +372,16 @@ var game = {
     var time = new Date().getTime();
     if (time - game.lastClick > 0.200){
       game.lastClick  = time;
-      var posX = Math.floor(x / TILE_SIZE);
-      var posY = Math.floor(y / TILE_SIZE);
-      if (posY < TILE_H -2){
-        game.manageTower(posX, posY);
+      if (game.paused){
+        game.pause();
       } else {
-        game.selectTowerType(x, y);
+        var posX = Math.floor(x / TILE_SIZE);
+        var posY = Math.floor(y / TILE_SIZE);
+        if (posY < TILE_H -2){
+          game.manageTower(posX, posY);
+        } else {
+          game.selectTowerType(x, y);
+        }
       }
     }
   },

@@ -81,6 +81,8 @@ var gui = {
       this.drawCharacter(game.selectTower2);
       this.drawCharacter(game.selectTower3);
       this.drawCharacter(game.selectTowerMark);
+      this.drawCharacter(game.pauseButton);
+      this.drawCharacter(game.pauseMenu);
     },
 
 
