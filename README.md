@@ -17,6 +17,8 @@ It is a web game, so you only need to open the index.html on a browser (Chrome r
 
 Also, you can play online on:
 
+https://pabloalba.github.io/euskal-tower-defense/
+
 
 
 ### Technologies ###
@@ -35,3 +37,10 @@ All the resources are Free (Libre)
 * Music: http://www.bensound.com/royalty-free-music/rock
 * Graphic resources (windows and buttons) created by GameArt2D (http://www.gameart2d.com)
 * Sprites by http://untamed.wild-refuge.net/rmxpresources.php?characters
+
+
+### Source ###
+
+Source code available at:
+
+https://github.com/pabloalba/euskal-tower-defense
